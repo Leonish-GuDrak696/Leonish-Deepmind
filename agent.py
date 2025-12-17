@@ -6,7 +6,7 @@ Advanced AI Workout Split Generator
 """
 
 from dotenv import load_dotenv
-from langchain.agents import create_openai_tools_agent, AgentExecutor
+from langchain.agents import create_tools_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.tools import tool
@@ -133,7 +133,7 @@ STRICT RULES:
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ])
 
-    agent = create_openai_tools_agent(
+    agent = create_tools_agent(
     llm=llm,
     tools=tools,
     prompt=prompt
@@ -209,4 +209,5 @@ if __name__ == "__main__":
 
     print(chat("Hi", agent_executor, session_id))
     print(chat("Bu", agent_executor, session_id))
+
 
