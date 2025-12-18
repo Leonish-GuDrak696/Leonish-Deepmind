@@ -296,7 +296,7 @@ def should_use_feedback_tool(user_input: str) -> bool:
 # =========================
 
 @tool
-def suggest_exercises(muscle_group: str, equipment: str) -> str:
+def suggest_exercises(muscle_group: str = "", equipment: str = "") -> str:
     """
     Suggest exercises ONLY when the user explicitly asks
     for exercises or workouts for a muscle group.
@@ -316,7 +316,7 @@ def suggest_exercises(muscle_group: str, equipment: str) -> str:
 
 
 @tool
-def adjust_sets_reps(goal: str, experience_level: str) -> str:
+def adjust_sets_reps(goal: str = "", experience_level: str = "") -> str:
     """
     Calculate sets and reps ONLY when the user asks
     about training volume, reps, or intensity.
@@ -336,7 +336,7 @@ def adjust_sets_reps(goal: str, experience_level: str) -> str:
 
 
 @tool
-def process_feedback(feedback: str) -> str:
+def process_feedback(feedback: str = "") -> str:
     """
     Process feedback ONLY when the user gives
     progress updates, pain, or preferences.
@@ -574,3 +574,4 @@ if __name__ == "__main__":
         if "Rate limit" in result:
             print(f"Rate limit triggered at request {i+1}")
             break
+
