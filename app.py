@@ -836,14 +836,17 @@ with st.form("chat_form", clear_on_submit=True):
         send = st.form_submit_button(
             "Send 💪",
             use_container_width=True,
-            disabled=st.session_state.is_processing or not user_text.strip()
+            disabled=st.session_state.is_processing   # ✅ FIXED
         )
 
 # Handle form submission
 if send and user_text.strip():
     success = process_user_message(user_text)
     if success:
-        chat_placeholder.markdown(render_chat(st.session_state.messages), unsafe_allow_html=True)
+        chat_placeholder.markdown(
+            render_chat(st.session_state.messages),
+            unsafe_allow_html=True
+        )
         st.rerun()
 
 # =========================
@@ -877,3 +880,4 @@ with col3:
         <p style='font-size: 12px; color: #999;'>Progress Tracking</p>
     </div>
     """, unsafe_allow_html=True)
+
