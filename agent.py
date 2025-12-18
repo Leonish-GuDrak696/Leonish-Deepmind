@@ -31,10 +31,12 @@ MEMORY_FILE = "user_memory.json"
 USER_PROFILES = "user_profiles.json"
 USAGE_STATS = "usage_stats.json"
 
+# =========================
+# Timeout
+# =========================
 
 class TimeoutError(Exception):
     pass
-
 
 @contextmanager
 def timeout(seconds: int):
@@ -49,6 +51,9 @@ def timeout(seconds: int):
         signal.alarm(0)
         signal.signal(signal.SIGALRM, old_handler)
 
+# =========================
+# Memory & Profiles
+# =========================
 
 def load_memory():
     if os.path.exists(MEMORY_FILE):
@@ -59,11 +64,9 @@ def load_memory():
             return {}
     return {}
 
-
 def save_memory(memory):
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory, f, indent=2)
-
 
 def load_user_profiles():
     if os.path.exists(USER_PROFILES):
@@ -74,11 +77,9 @@ def load_user_profiles():
             return {}
     return {}
 
-
 def save_user_profiles(profiles):
     with open(USER_PROFILES, "w") as f:
         json.dump(profiles, f, indent=2)
-
 
 def load_usage_stats():
     if os.path.exists(USAGE_STATS):
@@ -89,11 +90,9 @@ def load_usage_stats():
             return {}
     return {}
 
-
 def save_usage_stats(stats):
     with open(USAGE_STATS, "w") as f:
         json.dump(stats, f, indent=2)
-
 
 def update_usage_stats(session_id):
     stats = load_usage_stats()
@@ -108,12 +107,14 @@ def update_usage_stats(session_id):
     save_usage_stats(stats)
     return stats[session_id]["total_requests"]
 
+# =========================
+# Validation
+# =========================
 
 def is_valid_input(text: str) -> bool:
     if not text or len(text.strip()) < 2:
         return False
     return any(c.isalpha() for c in text)
-
 
 def is_greeting(text: str) -> bool:
     return text.strip().lower() in {
@@ -121,6 +122,9 @@ def is_greeting(text: str) -> bool:
         "good morning", "good afternoon", "good evening"
     }
 
+# =========================
+# Chat History
+# =========================
 
 def prepare_chat_history(chat_history, max_messages=20):
     formatted = []
@@ -131,9 +135,12 @@ def prepare_chat_history(chat_history, max_messages=20):
             formatted.append(AIMessage(content=msg))
     return formatted
 
+# =========================
+# TOOLS (FIXED DEFAULT PARAMS)
+# =========================
 
 @tool
-def suggest_exercises(muscle_group: str, equipment: str) -> str:
+def suggest_exercises(muscle_group: str = "", equipment: str = "") -> str:
     exercises = {
         "chest": ["Push-ups", "Bench Press", "Dumbbell Flyes"],
         "legs": ["Squats", "Lunges", "Leg Press"],
@@ -141,16 +148,17 @@ def suggest_exercises(muscle_group: str, equipment: str) -> str:
     }
     return f"{muscle_group.title()} exercises: {', '.join(exercises.get(muscle_group.lower(), []))}"
 
-
 @tool
-def adjust_sets_reps(goal: str, experience_level: str) -> str:
+def adjust_sets_reps(goal: str = "", experience_level: str = "") -> str:
     return f"For {goal}, {experience_level} level: 3–4 sets of 8–12 reps"
 
-
 @tool
-def process_feedback(feedback: str) -> str:
+def process_feedback(feedback: str = "") -> str:
     return f"Feedback noted: {feedback}"
 
+# =========================
+# Agent Creation
+# =========================
 
 def create_agent() -> AgentExecutor:
     llm = ChatGroq(
@@ -174,8 +182,7 @@ RULES:
 
 IMPORTANT FALLBACK RULE:
 If the user states a fitness goal or intent but does not ask explicitly,
-ask clarifying questions (experience level, equipment, schedule)
-instead of refusing or failing.
+ask clarifying questions instead of refusing.
 """),
         MessagesPlaceholder("chat_history"),
         ("human", "{input}"),
@@ -192,13 +199,15 @@ instead of refusing or failing.
         max_iterations=3
     )
 
+# =========================
+# Chat Handler
+# =========================
 
 user_memory = load_memory()
 
-
 def chat(user_input: str, agent_executor: AgentExecutor, session_id: str, timeout_seconds: int = 30) -> str:
     if not is_valid_input(user_input):
-        return "Could you please provide more details?"
+        return "Could you please provide a more detailed request?"
 
     if is_greeting(user_input):
         return "Hello! I'm your AI workout coach 💪 How can I help you today?"
@@ -215,14 +224,15 @@ def chat(user_input: str, agent_executor: AgentExecutor, session_id: str, timeou
 
         output = response.get("output")
 
-        # ✅ SAFE FALLBACK (CRITICAL FIX)
+        # ✅ SAFE FALLBACK (IMPORTANT FIX)
         if not output or len(output.strip()) < 10:
             output = (
-                "Got it 👍 To help you better, could you tell me:\n"
+                "I want to help you better 💪\n\n"
+                "Could you tell me:\n"
                 "- Your fitness goal\n"
                 "- Your experience level\n"
                 "- Equipment available\n\n"
-                "Example: *Beginner, muscle gain, home dumbbells*"
+                "Example: Beginner, muscle gain, home dumbbells"
             )
 
         chat_history.append(("human", user_input))
@@ -235,9 +245,13 @@ def chat(user_input: str, agent_executor: AgentExecutor, session_id: str, timeou
     except TimeoutError:
         return "I'm taking too long to respond. Please try again."
 
-    except Exception:
-        return "I'm having trouble understanding that. Please rephrase."
+    except Exception as e:
+        print("Agent error:", e)
+        return "I'm having trouble processing that. Please try rephrasing."
 
+# =========================
+# Local Test
+# =========================
 
 if __name__ == "__main__":
     agent = create_agent()
